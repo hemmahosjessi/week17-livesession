@@ -2,8 +2,14 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import listEndpoints from 'express-list-endpoints'
+import mongoose from 'mongoose'
 
 import techFundings from './data/tech_fundings.json'
+
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost/livesession-week18'
+mongoose.connect( mongoUrl, {useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.Promise = Promise
+
 
 const port = process.env.PORT || 3030
 const app = express()
@@ -12,11 +18,32 @@ const app = express()
 app.use(cors())
 app.use(bodyParser.json())
 
-const users = [
-  {id: 1, name: 'Alice', age: 33},
-  {id: 2, name: 'Bob', age: 24},
-  {id: 3, name: 'Jane', age: 43},
-]
+
+const User = mongoose.model('User', {
+  name: String,
+  age: Number,
+})
+
+const newUser = new User({
+  name: 'Jessi',
+  age: 46
+})
+
+const newUser2 = new User({
+  name: 'Peter',
+  age: 48
+})
+
+if (process.env.RESET_DB) {
+  const seedDatabase = async () => {
+    await User.deleteMany({})
+
+    newUser.save()
+    newUser2.save()
+  }
+
+  seedDatabase()
+}
 
 // Start defining your routes here
 app.get('/', (req, res) => {
@@ -27,69 +54,7 @@ app.get('/endpoints', (req,res) => {
   res.send(listEndpoints(app))
 })
 
-// get a list of users
-app.get('/users', (req, res) => {
-  res.json(users)
-})
 
-app.get('/fundings', (req, res) => {
-const { company, region } = req.query
-
-let techFundingsToSend = techFundings
-
-if (company) {
-  techFundingsToSend = techFundingsToSend.filter(
-    (item) => item.Company.toLowerCase().indexOf(company.toLowerCase()) !== -1
-    )
-}
-
-if (region) {
-  techFundingsToSend = techFundingsToSend.filter(
-    (item) => item.Region.toLowerCase().indexOf(region.toLowerCase()) !== -1
-    )
-}
-
-  res.json ({
-    response: techFundingsToSend,
-    success: true,
-  })
-})
-
-
-app.get('/fundings/index/:index', (req, res) => {
-  const { index } = req.params
-
-  const companyId = tech_fundings.find(company => company.index === +index)
-
-  if (!companyId) {
-    res.status(404).send('No company found with that Id')
-  } else {
-    res.json(companyId)
-  }
-})
-
-app.get('/fundings/company/:company', (req, res) => {
-  const { company } = req.params
-
-  const companyByName = techFundings.find(item => item.Company === company)
-
-  if (!company) {
-    res.status(404).json({
-      response: 'No company found with that name',
-      success: false
-    })
-  } else {
-    res.status(200).json({
-      response: companyByName,
-      success: true
-    })
-  } 
-})
-
-
-app.get('/users', (req, res) => {
-  res.json(users)
-})
 
 // Start the server
 app.listen(port, () => {
