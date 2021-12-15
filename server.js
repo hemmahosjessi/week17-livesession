@@ -19,42 +19,75 @@ app.use(cors())
 app.use(bodyParser.json())
 
 
-const User = mongoose.model('User', {
-  name: String,
-  age: Number,
-})
-
-const newUser = new User({
-  name: 'Jessi',
-  age: 46
-})
-
-const newUser2 = new User({
-  name: 'Peter',
-  age: 48
+const Company = mongoose.model('Company', {
+  index: Number,
+  company: String,
+  website: String,
+  region: String,
+  vertical: String,
+  fundingAmountUSD: Number,
+  fundingStage: String,
+  fundingDate: String
 })
 
 if (process.env.RESET_DB) {
   const seedDatabase = async () => {
-    await User.deleteMany({})
+    await Company.deleteMany({})
 
-    newUser.save()
-    newUser2.save()
+    techFundings.forEach(company => {
+      const newCompany = new Company(company)
+      newCompany.save()
+    })
   }
 
   seedDatabase()
 }
+
+// Middleware
+app.use((req, res, next) => {
+  if (mongoose.connection.readyState === 1) {
+    next()
+  } else {
+    res.status(503).json({ error: 'Service unavailable' })
+  }
+})
 
 // Start defining your routes here
 app.get('/', (req, res) => {
   res.send('Hello world HEY')
 })
 
-app.get('/endpoints', (req,res) => {
-  res.send(listEndpoints(app))
+// Get all companies
+app.get('/companies', async (req, res) => {
+  console.log(req.query)
+ let companies = await Company.find(req.query)
+
+ if (req.query.fundingAmountUSD) {
+  const companiesByAmount = await Company.find().gt('fundingAmountUSD', req.query.fundingAmountUSD)
+  companies = companiesByAmount
+ }
+
+ res.json(companies)
+})
+
+// Get one company based on id
+app.get('/companies/id/:id', async (req, res) => {
+  try {
+    const companyById = await Company.findById(req.params.id)
+    if(companyById) {
+      res.json(companyById)
+   } else {
+     res.status(404).json({error: 'Company not found'})
+   } 
+  } catch(error) {
+    res.status(400).json({error: 'Id is invalid'})
+  }
 })
 
 
+app.get('/endpoints', (req,res) => {
+  res.send(listEndpoints(app))
+})
 
 // Start the server
 app.listen(port, () => {
