@@ -1,13 +1,11 @@
 import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
-import tech_fundings from './data/tech_fundings.json'
+import listEndpoints from 'express-list-endpoints'
 
-// Defines the port the app will run on. Defaults to 8080, but can be
-// overridden when starting the server. For example:
-//
-//   PORT=9000 npm start
-const port = process.env.PORT || 3000
+import techFundings from './data/tech_fundings.json'
+
+const port = process.env.PORT || 3030
 const app = express()
 
 // Add middlewares to enable cors and json body parsing
@@ -25,20 +23,40 @@ app.get('/', (req, res) => {
   res.send('Hello world HEY')
 })
 
-app.get('/fundings', (req, res) => {
-  res.send(tech_fundings)
+app.get('/endpoints', (req,res) => {
+  res.send(listEndpoints(app))
 })
 
-app.get('/fundings/company', (req, res) => {
-  res.send(tech_fundings.map(item => item.Company))
+// get a list of users
+app.get('/users', (req, res) => {
+  res.json(users)
 })
+
+app.get('/fundings', (req, res) => {
+const { company, region } = req.query
+
+let techFundingsToSend = techFundings
+
+if (company) {
+  techFundingsToSend = techFundingsToSend.filter(
+    (item) => item.Company.toLowerCase().indexOf(company.toLowerCase()) !== -1
+    )
+}
+
+if (region) {
+  techFundingsToSend = techFundingsToSend.filter(
+    (item) => item.Region.toLowerCase().indexOf(region.toLowerCase()) !== -1
+    )
+}
+
+  res.json ({
+    response: techFundingsToSend,
+    success: true,
+  })
+})
+
 
 app.get('/fundings/index/:index', (req, res) => {
-  const index = req.params.index
-  res.send(tech_fundings.filter(item => item.index === + index))
-})
-
-app.get('/fundings/:index', (req, res) => {
   const { index } = req.params
 
   const companyId = tech_fundings.find(company => company.index === +index)
@@ -50,22 +68,24 @@ app.get('/fundings/:index', (req, res) => {
   }
 })
 
-// app.get('/users', (req, res) => {
-//   res.json([
-//     {id: 1, name: 'Alice', age: 33},
-//     {id: 2, name: 'Bob', age: 24},
-//     {id: 3, name: 'Jane', age: 43}
-//   ])
-// })
+app.get('/fundings/company/:company', (req, res) => {
+  const { company } = req.params
 
-// app.get('/users', (req, res) => {
-//   const users = [
-//     {id: 1, name: 'Alice', age: 33},
-//     {id: 2, name: 'Bob', age: 24},
-//     {id: 3, name: 'Jane', age: 43},
-//   ]
-//   res.json(users)
-// })
+  const companyByName = techFundings.find(item => item.Company === company)
+
+  if (!company) {
+    res.status(404).json({
+      response: 'No company found with that name',
+      success: false
+    })
+  } else {
+    res.status(200).json({
+      response: companyByName,
+      success: true
+    })
+  } 
+})
+
 
 app.get('/users', (req, res) => {
   res.json(users)

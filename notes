@@ -1,0 +1,8 @@
+// app.get('/fundings/company', (req, res) => {
+//   res.send(tech_fundings.map(item => item.Company))
+// })
+
+// app.get('/fundings/index/:index', (req, res) => {
+//   const index = req.params.index
+//   res.send(tech_fundings.filter(item => item.index === + index))
+// })
